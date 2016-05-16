@@ -143,6 +143,12 @@ function connect()
 	    echo "OK.\n";
 	}
 
+	// set up receive timeout to 1 minute
+	socket_set_option($socket, SOL_SOCKET, SO_RCVTIMEO, array('sec'=>60, 'usec'=>0));
+
+	print "Receive timout: ";
+	print_r(socket_get_option($socket, SOL_SOCKET, SO_RCVTIMEO));
+
 	return $socket;
 }
 
@@ -177,11 +183,13 @@ $line = "";
 $cnt = 0;
 $buf = "";
 $sT = time();
+
 // run for a little over a day
-while ((time() - $sT) <= 100000)
+while ((time() - $sT) <= 45000)
 {
-	$cnt = socket_recv($socket, $buf, 1, MSG_PEEK);
-	if ($cnt === false)
+   $cnt = socket_recv($socket, $buf, 10, 0);
+	
+	if ($cnt === false)// && socket_last_error($socket) != 11)
 	{
 		print time() . "\n";;
 		print (socket_last_error($socket)) . "\n";
@@ -189,22 +197,12 @@ while ((time() - $sT) <= 100000)
 		socket_close($socket);
 		$socket = connect();
 		read_header($socket);
-		$line = "";
 		continue;
 	}
-
-   $cnt = socket_recv($socket, $buf, 80, MSG_DONTWAIT);
-	
-	if ($cnt === false && socket_last_error($socket) != 11)
+	else
 	{
-		print time() . "\n";;
-		print (socket_last_error($socket)) . "\n";
-		print socket_strerror(socket_last_error($socket)) . "\n";
-		socket_close($socket);
-		$socket = connect();
-		read_header($socket);
-		continue;
-	}		
+		socket_clear_error();
+	}	
 
 	if ($cnt != 0)
 	{
@@ -220,60 +218,7 @@ while ((time() - $sT) <= 100000)
 		}
 	}
 }
-/*
-for ($i=0;$i<12;$i++)
-   $line = socket_read($socket, 80, PHP_NORMAL_READ);
 
-socket_write($socket, $login, strlen($login));
-   $line = socket_read($socket, 80, PHP_NORMAL_READ);
-   $line = socket_read($socket, 80, PHP_NORMAL_READ);
-
-
-//$socket = fopen("php://stdin", "r");			
-//stream_set_read_buffer($socket, 0);
-while (($line = fgets($socket, 80)) !== FALSE)
-{
-	//print " 1 " . microtime() . "\n";
-	// update the alerts every 15 minutes
-	if ((time() - $lastFetch) > 900)
-		$alerts = fetch_alerts();
-
-	
-	//print " 2 " . microtime().  "\n";
-
-	//$fields = array_values(array_filter(explode(" ", trim($line))));
-	//print_r($fields);
-	//print " 3 " . microtime() . "\n";
-	$fields = explode(" ", trim($line));	
-
-	$dx = $fields[0];
-	//print "$dx\n";
-	// only look at skimmer spots
-	//if (strpos($dx, "-#") !== FALSE)
-	//{
-      $dx = substr($fields[0], 0, strlen($fields[0])-3);
-		$op = $fields[2];
-		$freq = $fields[1];
-		$mode = "CW";
-
-		//print "   $op - $mode\n";
-
-		if ($mode == "CW")
-		{
-			$snr = $fields[3];
-			$wpm = $fields[4];
-			$tm = $fields[5];
-
-			// get summit reference from alerts
-			$ref = check_alerts($op, $tm);
-
-			if ($ref !== FALSE)
-				print "$op spotted by $dx on $freq (snr $snr @ $wpm)\n";
-		}
-		print "$dx $freq $op $snr $wpm $tm\n";
-	///}
-}
-*/
 socket_close($socket);
 
 // vim: ts=3 sw=3 cindent noexpandtab
