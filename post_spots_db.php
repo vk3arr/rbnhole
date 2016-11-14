@@ -18,7 +18,10 @@ $res = $dbh->query($sql);
 $rows = $res->fetch_all();
 
 if ($res->num_rows == 0)
+{
+	$dbh->close();
 	exit;
+}
 
 $handle = curl_init('http://old.sota.org.uk/Spotlite/postSpot');
 
@@ -75,6 +78,7 @@ foreach ($rows as $row)
 }
 
 curl_close($handle);
+$dbh->close();
 // vim: sw=3 ts=3 cindent
 
 ?>

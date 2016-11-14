@@ -135,19 +135,25 @@ function connect()
 	$address = gethostbyname('relay2.reversebeacon.net');
 	$port = 7000;
 
+	print "Time of reconnect: " . date("H:i e") . "\n";
 	echo "Attempting to connect to '$address' on port '$port'...";
-	$result = socket_connect($socket, $address, $port);
-	if ($result === false) {
-   	 echo "socket_connect() failed.\nReason: ($result) " . socket_strerror(socket_last_error($socket)) . "\n";
-	} else {
-	    echo "OK.\n";
+	$tries = 0;
+	while ($tries < 3)
+	{
+		$result = socket_connect($socket, $address, $port);
+		if ($result === false) {
+			 echo "socket_connect() failed.\nReason: ($result) " . socket_strerror(socket_last_error($socket)) . "\n";
+			 sleep(60);
+		} else {
+			 echo "OK.\n";
+			 break;
+		}
 	}
-
 	// set up receive timeout to 1 minute
-	socket_set_option($socket, SOL_SOCKET, SO_RCVTIMEO, array('sec'=>60, 'usec'=>0));
+	socket_set_option($socket, SOL_SOCKET, SO_RCVTIMEO, array('sec'=>60, 'usec'=>60));
 
-	print "Receive timout: ";
-	print_r(socket_get_option($socket, SOL_SOCKET, SO_RCVTIMEO));
+	//print "Receive timout: ";
+	//print_r(socket_get_option($socket, SOL_SOCKET, SO_RCVTIMEO));
 
 	return $socket;
 }
@@ -189,7 +195,7 @@ while ((time() - $sT) <= 45000)
 {
    $cnt = socket_recv($socket, $buf, 10, 0);
 	
-	if ($cnt === false)// && socket_last_error($socket) != 11)
+	if ($cnt === false || $cnt == 0)// && socket_last_error($socket) != 11)
 	{
 		print time() . "\n";;
 		print (socket_last_error($socket)) . "\n";
@@ -220,7 +226,7 @@ while ((time() - $sT) <= 45000)
 }
 
 socket_close($socket);
-
+$dbh->close();
 // vim: ts=3 sw=3 cindent noexpandtab
 
 ?>

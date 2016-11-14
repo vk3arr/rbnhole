@@ -30,7 +30,8 @@ function fetch_alerts($dbh)
 			$tm = trim(substr($alertLine, 49));
 			$tm = str_replace("</td>", "", $tm);
 			$alert['time'] = strtotime("$dt $tm");
-			$alert['startTime'] = $alert['time']-7200;					$alert['endTime'] = $alert['time']+7200;	
+			$alert['startTime'] = $alert['time']-3600;
+			$alert['endTime'] = $alert['time']+10800;
 			$state = "OP";
 		}
 		else if ($state == "OP" && strpos($alertLine, "<strong>") === 0)
@@ -54,14 +55,17 @@ function fetch_alerts($dbh)
 		        $comment = substr($comment, 0, strpos($comment, "</span>"));	
 			$alert['comment'] = $comment;	
 
-			if (strpos($comment, "S-") !== FALSE && strpos($comment, "S+") !== FALSE)
+			if (strpos($comment, "S-") !== FALSE ||
+			    strpos($comment, "S+") !== FALSE ||
+				 strpos($comment, "s-") !== FALSE ||
+				 strpos($comment, "s+") !== FALSE)
 			{
 				//
 				$time = $alert['time'];
 				$startPattern = array();
 				$endPattern = array();
-				$fndS = preg_match("/S-([0-9]+)/", $comment, $startPattern);
-				$fndE = preg_match("/S\+([0-9]+)/", $comment, $endPattern);
+				$fndS = preg_match("/[sS]-([0-9]+)/", $comment, $startPattern);
+				$fndE = preg_match("/[sS]\+([0-9]+)/", $comment, $endPattern);
 
 				print_r($startPattern);
 				print_r($endPattern);
@@ -117,8 +121,8 @@ if (count($alerts) != 0)
 
 foreach ($alerts as $alert)
 {
- 
-   $sql = "insert into alerts(startTime, endTime, op, summit, comment, time) values(FROM_UNIXTIME('" . 
+
+	$sql = "insert into alerts(startTime, endTime, op, summit, comment, time) values(FROM_UNIXTIME('" . 
           ($alert['startTime']) . "'), FROM_UNIXTIME('" . ($alert['endTime']) . "'), '" . $alert['op'] . "','" . $alert['summit'] . "', '" . $alert['comment'] . "', FROM_UNIXTIME('" . $alert['time'] . "'));";
 
   
@@ -126,5 +130,6 @@ foreach ($alerts as $alert)
    //print ($alert['time']-7200) . " " . ($alert['time']+7200) . " " . $alert['op'] . " " . $alert['summit'] . "\n";
 }
 $dbh->commit();
+$dbh->close();
 // vim: sw=3 ts=3 cindent
 ?>
