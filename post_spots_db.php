@@ -5,6 +5,58 @@ include_once('/path/to/rbnhole/db_2.inc');
 
 $dbh = new mysqli($DB_HOST, $DB_USER, $DB_PASS, $DB_NAME);
 
+$sql = "select count(*) from rbn_spots";
+$res = $dbh->query($sql);
+$row = $res->fetch_row();
+
+if ($row[0] == 0)
+{
+   $sql = "update watchdog set no_spot_count = no_spot_count+1";
+   $dbh->query($sql);
+   return;
+}
+
+function fetch_sw_spots()
+{
+   global $apiUser, $apiKey, $dbh;
+
+   $url = "http://api.sota.org.uk/api/spot/1/hours?userKey=$apiUser&apiKey=$apiKey"
+   $json = file_get_contents($url);
+   $spots = json_decode($json);
+   
+   foreach ($spots as $spot)
+   {
+      if (strtoupper($spot['Mode']) == "CW")
+      {
+         // check if spot ID already been seen
+         $sql = "select * from sw_spots where id='" . $spot['ID'] . "'";
+         $res = $dbh->query();
+         
+         // virgin spot
+         if ($res->num_rows == 0)
+         {
+            // add a spot into SeenActivators
+            $op = $spot['ActivatorCallsign'];
+            $band = floor($spot['Frequency']);
+            $freq = $spot['Frequency'];
+            $summit = $spot['AssociationCode'] . "/" . $spot['SummitCode'];
+            $id = $spot['Id'];
+
+	         $sql =  "insert into PostedSpots (op, band, freq, summit, time) ";
+            $sql .= "values('$op', '$band', '$freq', '$summit', NOW());";
+            $dbh->query();
+
+            // then insert into sw_spots
+            $sql  = "insert into sw_spots (id, op, freq, time) values ";
+            $sql .= "('$id', '$op', '$freq', NOW());";
+            $dbh->query();
+         }
+      }
+   }
+}
+
+fetch_sw_spots();
+
 $sql = "delete from rbn_spots where op not in(select b.op from alerts b);";
 $dbh->query($sql);
 
