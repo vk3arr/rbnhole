@@ -20,7 +20,7 @@ function fetch_sw_spots()
 {
    global $apiUser, $apiKey, $dbh;
 
-   $url = "http://api.sota.org.uk/api/spot/1/hours?userKey=$apiUser&apiKey=$apiKey"
+   $url = "http://api.sota.org.uk/api/spot/1/hours?userKey=$apiUser&apiKey=$apiKey";
    $json = file_get_contents($url);
    $spots = json_decode($json);
    
