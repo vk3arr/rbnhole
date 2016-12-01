@@ -6,4 +6,6 @@ $DB_PASS='XXXXXXXX';  // FIXME: update for spotter user's pass
 $DB_NAME='rbn_hole';  // FIXME: change for DB Name
 $RBNHOLE_USER="XXXXXXXX";  // FIXME: update for SOTAWatch RBNHole Username
 $RBNHOLE_PASS="XXXXXXXX";  // FIXME: update for SOTAWatch RBNHole Password
+$apiUser="XXXXXXXXXX"; // FIXME: add in SOTA website API user
+$apiKey="XXXXXXXXXX"; // FIXME: add in SOTA website API key
 ?>
