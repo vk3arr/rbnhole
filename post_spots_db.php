@@ -63,8 +63,6 @@ $dbh->query($sql);
 $sql = "delete from rbn_spots where TIMESTAMPDIFF(MINUTE, time, NOW()) > 10";
 $dbh->query($sql);
 
-//$sql = "select a.op, freq, count(freq) from rbn_spots a, alerts b where a.op = b.op group by freq order by count(freq) desc limit 1;";
-//$sql = "select c.op, freq, max(cnt) from (select a.op, freq, count(freq) as cnt from rbn_spots a, alerts b where a.op = b.op group by freq order by count(freq) desc) c;";
 $sql = "select op, freq from SeenActivators a where cnt = (select max(cnt) from SeenActivators where op = a.op);";
 $res = $dbh->query($sql);
 $rows = $res->fetch_all();
