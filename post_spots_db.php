@@ -83,7 +83,7 @@ function post_spot($op, $dx, $snr, $wpm, $freq, $summit)
 
 	$assoc = substr($summit, 0, strpos($summit, "/"));
 	$ref = substr($summit, strpos($summit, "/")+1);
-	print "$assoc $ref\n";
+	print "$summit $op $freq\n";
 	$dx = urlencode(substr($dx, 0, strpos($dx, "-")));
 	$comment = "%5BRBNHole%5D++at+$dx+$wpm+WPM+$snr+dB+SNR";
 	$freq /= 1000.0;  // RBN is in kHz, SOTAWatch in MHz
