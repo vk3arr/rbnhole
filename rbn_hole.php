@@ -74,10 +74,46 @@ function connect()
 	return $socket;
 }
 
+function already_running()
+{
+	// simple watchdog predicated on the fact that the RBN gets
+	// enough spots that if we miss two 1 minute windows with
+	// no spots in the database, it's a fair bet another instance
+	// of rbn_hole is no longer running
+
+	global $dbh;
+	$sql = "select no_spot_cnt from watchdog";
+	$res = $dbh->query($sql);
+	$row = $res->fetch_row();
+	if ($row[0] >= '2')
+		return false;
+
+	return true;
+}
+
+$dbh = new mysqli($DB_HOST, $DB_USER, $DB_PASS, $DB_NAME);
+
+if (already_running())
+{
+	$dbh->close();
+	return;
+}
+
+print "Watchdog timeout, sending kill signal\n";
+$sql = "select pid from watchdog";
+$res = $dbh->query($sql);
+$row = $res->fetch_row();
+posix_kill($row[0], SIGKILL);
+
+$pid = posix_getpid();
+$sql = "update watchdog set pid = '$pid'";
+$dbh->query($sql);
+$sql = "update watchdog set no_spot_cnt='0'";
+$dbh->query($sql);
+
 $socket = connect();
 print $socket;
 
-$dbh = new mysqli($DB_HOST, $DB_USER, $DB_PASS, $DB_NAME);
 
 function read_header(&$socket)
 {
