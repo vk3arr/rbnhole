@@ -22,15 +22,15 @@ function fetch_sw_spots()
 
    $url = "http://api.sota.org.uk/api/spot/1/hours?userKey=$apiUser&apiKey=$apiKey";
    $json = file_get_contents($url);
-   $spots = json_decode($json);
+   $spots = json_decode($json, TRUE);
    
    foreach ($spots as $spot)
    {
       if (strtoupper($spot['Mode']) == "CW")
       {
          // check if spot ID already been seen
-         $sql = "select * from sw_spots where id='" . $spot['ID'] . "'";
-         $res = $dbh->query();
+         $sql = "select * from sw_spots where id='" . $spot['Id'] . "'";
+         $res = $dbh->query($sql);
          
          // virgin spot
          if ($res->num_rows == 0)
@@ -44,12 +44,12 @@ function fetch_sw_spots()
 
 	         $sql =  "insert into PostedSpots (op, band, freq, summit, time) ";
             $sql .= "values('$op', '$band', '$freq', '$summit', NOW());";
-            $dbh->query();
+            $dbh->query($sql);
 
             // then insert into sw_spots
             $sql  = "insert into sw_spots (id, op, freq, time) values ";
             $sql .= "('$id', '$op', '$freq', NOW());";
-            $dbh->query();
+            $dbh->query($sql);
          }
       }
    }
