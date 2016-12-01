@@ -11,7 +11,7 @@ $row = $res->fetch_row();
 
 if ($row[0] == 0)
 {
-   $sql = "update watchdog set no_spot_count = no_spot_count+1";
+   $sql = "update watchdog set no_spot_cnt = no_spot_cnt+1";
    $dbh->query($sql);
    return;
 }
