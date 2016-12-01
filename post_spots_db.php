@@ -95,7 +95,10 @@ function post_spot($op, $dx, $snr, $wpm, $freq, $summit)
 
 	// already spotted
 	if ($res->num_rows > 0)
+   {
+      print " - No spot for $op due to spot lockout\n";
 		return;
+   }
 
 	$url = "actCallsign=" . curl_escape($handle, $op) . "&assoc=$assoc&summit=$ref&freq=$freq&mode=cw&comments=$comment&callsign=$RBNHOLE_USER&password=$RBNHOLE_PASS&submit=SPOT%21";
 
