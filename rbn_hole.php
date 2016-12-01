@@ -1,90 +1,8 @@
 #!/usr/bin/php -f
 <?php
 
-
-
-$lastFetch = -1;
-
 // work in UTC only
 date_default_timezone_set("UTC");
-
-function fetch_alerts()
-{
-	$alertsString = file("http://sotawatch.org/alerts.php");
-
-	$alert = array();
-	$tmp = array();
-	$dt = 0;
-	$state = "NEW";
-
-	foreach ($alertsString as $alertLine)
-	{
-		$alertLine = trim($alertLine);
-		if ($state == "NEW" && strpos($alertLine, "class=\"alertDate") !== FALSE)
-		{
-			// update the date
-			$dStr = substr($alertLine, strpos($alertLine, "<span class")+24);
-			$dStr = substr($dStr, 0, strpos($dStr, "<"));
-			$dt = $dStr;
-		}
-		else if ($state == "NEW" && strpos($alertLine, 
-					"td width = \"70px\">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;") !== FALSE)
-		{
-			$tm = trim(substr($alertLine, 49));
-			$tm = str_replace("</td>", "", $tm);
-			$alert['time'] = strtotime("$dt $tm");
-			$state = "OP";
-		}
-		else if ($state == "OP" && strpos($alertLine, "<strong>") === 0)
-		{
-			$op = substr($alertLine, 8);
-			$op = str_replace("</strong> on", "", $op);
-			$alert['op'] = $op;
-			$state = "SUMMIT";
-		}
-		else if ($state == "SUMMIT" && strpos($alertLine, "summits.php") !== 0)
-		{
-			$summit = str_replace("<a href =\"summits.php?summit=", "", $alertLine);
-			$summit = substr($summit, 0, strpos($summit, "\""));
-			
-			$alert['summit'] = $summit;
-			array_push($tmp, $alert);
-			$state = "NEW";
-		}
-	}
-
-	$lastFetch = time();
-
-	return $tmp;
-}
-
-function check_alerts($op, $tm)
-{
-	global $alerts;
-	print "check_alerts()\n";
-	$t = mktime(intval(substr($tm, 0, 2)), intval(substr($tm, 2, 2)));
-  	$minDiff = PHP_INT_MAX;
-	$alert = array();
-
-	foreach ($alerts as $alt);
-	{
-		
-		// find closest alert that matches op
-		if (trim($alt['op']) == trim($op))
-		{
-			if (abs($t - $alt['time']) <= $minDiff)
-			{
-				$alert = $alt;
-			}
-		}	
-	}	
-
-	// if within 2 hours
-	if ($minDiff < 7200)
-		return $alert['summit'];
-
-	return FALSE;
-}
 
 function post_spot($line)
 {
@@ -117,8 +35,6 @@ function post_spot($line)
 	$sql = "insert into rbn_spots (dx, op, freq, snr, wpm) values('$dx', '$op', '$freq', '$snr', '$wpm')";
 	$dbh->query($sql);
 }
-
-//$alerts = fetch_alerts();
 
 include_once('/path/to/rbnhole/db.inc');
 
