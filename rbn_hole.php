@@ -105,15 +105,15 @@ $res = $dbh->query($sql);
 $row = $res->fetch_row();
 posix_kill($row[0], SIGKILL);
 
+
+$socket = connect();
+//print $socket;
+
 $pid = posix_getpid();
 $sql = "update watchdog set pid = '$pid'";
 $dbh->query($sql);
 $sql = "update watchdog set no_spot_cnt='0'";
 $dbh->query($sql);
-
-$socket = connect();
-print $socket;
-
 
 function read_header(&$socket)
 {

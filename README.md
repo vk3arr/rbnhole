@@ -50,6 +50,7 @@ I have the following cron tasks set up:
 */2 * * * * /path/to/rbnhole/rbn_hole.php >> /path/to/rbnhole/rbn.txt
 */5 * * * * /path/to/rbnhole/fetch_alerts_db.php
 */1 * * * * /path/to/rbnhole/post_spots_db.php >> /path/to/rbnhole/spots.txt
+*/2 * * * * /usr/bin/php /path/to/rbnhole/psk_hole.php >> /path/to/rbnhole/psk.txt && /path/to/rbnhole/post_spots_db_psk.php >> /path/to/rbnhole/psk_spots.txt
 ```
 
 You will probably want to logrotate the output from rbn_hole.php at some point.
