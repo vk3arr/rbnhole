@@ -43,12 +43,12 @@ function connect()
 	/* Create a TCP/IP socket. */
 	$socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
 	if ($socket === false) {
-   	 echo "socket_create() failed: reason: " . socket_strerror(socket_last_error()) . "\n";
+		echo "socket_create() failed: reason: " . socket_strerror(socket_last_error()) . "\n";
 	} else {
-   	 echo "OK.\n";
+		echo "OK.\n";
 	}
 
-	$address = gethostbyname('relay2.reversebeacon.net');
+	$address = gethostbyname('telnet.reversebeacon.net');
 	$port = 7000;
 
 	print "Time of reconnect: " . date("H:i e") . "\n";
@@ -58,11 +58,11 @@ function connect()
 	{
 		$result = socket_connect($socket, $address, $port);
 		if ($result === false) {
-			 echo "socket_connect() failed.\nReason: ($result) " . socket_strerror(socket_last_error($socket)) . "\n";
-			 sleep(60);
+			echo "socket_connect() failed.\nReason: ($result) " . socket_strerror(socket_last_error($socket)) . "\n";
+			sleep(60);
 		} else {
-			 echo "OK.\n";
-			 break;
+			echo "OK.\n";
+			break;
 		}
 	}
 	// set up receive timeout to 1 minute
@@ -105,15 +105,15 @@ $res = $dbh->query($sql);
 $row = $res->fetch_row();
 posix_kill($row[0], SIGKILL);
 
-
-$socket = connect();
-//print $socket;
-
 $pid = posix_getpid();
 $sql = "update watchdog set pid = '$pid'";
 $dbh->query($sql);
 $sql = "update watchdog set no_spot_cnt='0'";
 $dbh->query($sql);
+
+$socket = connect();
+print $socket;
+
 
 function read_header(&$socket)
 {
@@ -126,8 +126,8 @@ function read_header(&$socket)
 	while(true)
 	{
 		$cnt += socket_recv($socket, $buf, 80, MSG_DONTWAIT);
-		print "$buf";
-		if ($cnt == 182)
+		//print "$buf " . $cnt . "\n";
+		if ($cnt == 24)
 		{
 			socket_write($socket, "VK3ARR\r\n", strlen($login));
 			break;
