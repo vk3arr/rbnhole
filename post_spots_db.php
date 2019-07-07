@@ -135,6 +135,10 @@ function post_spot($op, $dx, $snr, $wpm, $freq, $summit)
 						"frequency" => $freq);
 	$json = json_encode($data);
 	print_r($data);
+	if (preg_match("/[A-Z][A-Z]-[0-9][0-9][0-9]/", $ref) === 1)
+		curl_setopt($handle, CURLOPT_URL, 'https://api2.sota.org.uk/api/spots?client=sotawatch&user=rbnhole');
+	else
+		curl_setopt($handle, CURLOPT_URL, 'https://api2.sota.org.uk/api/spots/dontchecksummit?client=sotawatch&user=rbnhole');
 	curl_setopt($handle, CURLOPT_POST, 1);
 	curl_setopt($handle, CURLOPT_POSTFIELDS, $json);
 	curl_setopt($handle, CURLOPT_RETURNTRANSFER, 1);
