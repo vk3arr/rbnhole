@@ -5,7 +5,7 @@ date_default_timezone_set("UTC");
 
 function fetch_alerts($dbh)
 {
-	$alerts = json_decode(file_get_contents("https://api2.sota.org.uk/api/alerts/"), TRUE);
+	$alerts = json_decode(file_get_contents("https://api2.sota.org.uk/api/alerts/24/"), TRUE);
 
 	$tmp = array();
 
