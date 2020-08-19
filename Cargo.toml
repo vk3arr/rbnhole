@@ -1,0 +1,32 @@
+[package]
+name = "rbnhole"
+version = "2.0.0"
+authors = ["Andrew Ryan <anryan@ieee.org>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[[bin]]
+name="rbn_hole"
+path="src/rbn_hole/main.rs"
+
+[[bin]]
+name="fetch_alerts"
+path="src/fetch_alerts/main.rs"
+
+[[bin]]
+name="post_spots_db_api"
+path="src/post_spots_db_api/main.rs"
+
+[[bin]]
+name="monitor_spots"
+path="src/monitor_spots/main.rs"
+
+[dependencies]
+telnet = "*"
+mysql = "*"
+reqwest = { version = "*", features = ["blocking", "json"] }
+chrono = { version = "0.4.13", features = ["serde"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+regex = "*"
