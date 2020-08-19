@@ -8,16 +8,15 @@ RBNHole builds on the work done by Eric June KU6J (SK)'s RBNGate system.
  that servers a similar purpose, I've called this RBNHole in homage.
 
 **Important**: Do **not** run an RBNHole server without the approval of the
-[SOTA Management Team](http://www.sota.org.uk/).  This code is provided to 
-allow others to run a server in the case of myself going SK or some other 
-bus-worthy incident.
+[SOTA Management Team](http://www.sota.org.uk/Contact/).  This code is 
+provided to allow others to run a server in the case of myself going SK or some other bus-worthy incident.
 
 ### Installation
 
 After installation, modify /path/to/rbnhole in each script to point to the 
 install path.  In the following instructions, make sure you do the same.
 
-Make sure you have php, php-process and MySQL installed.
+Make sure you have a new version of rust and MySQL installed.
 
 In order to configure MySQL to take the RBN data and alerts, it is necessary
 first to use mysqlrestore to restore db_schema.sql.  You will then need to
