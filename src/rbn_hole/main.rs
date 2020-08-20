@@ -8,7 +8,7 @@ pub mod passwords;
 
 fn post_spot(dbh: &mut mysql::PooledConn, line: String) {
     let fields = line.split_whitespace().collect::<Vec<&str>>();
-    println!("{:?}", fields);
+    //println!("{:?}", fields);
     
     if fields.len() < 9 {
         return;
@@ -23,7 +23,8 @@ fn post_spot(dbh: &mut mysql::PooledConn, line: String) {
 
         dbh.exec_drop("insert into rbn_spots(dx, op, freq, snr, wpm) values(
                         :dx, :op, :freq, :snr, :wpm)", 
-                        (dx, op, freq, snr, wpm)).expect("Failed to insert spot");
+                        (dx, op, freq, snr, wpm))
+           .expect("Failed to insert spot");
     }
 }
 
