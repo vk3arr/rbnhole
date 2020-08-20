@@ -13,10 +13,9 @@ provided to allow others to run a server in the case of myself going SK or some 
 
 ### Installation
 
-After installation, modify /path/to/rbnhole in each script to point to the 
-install path.  In the following instructions, make sure you do the same.
-
-Make sure you have a new version of rust and MySQL installed.
+Make sure you have a new version of rust, cargo and MySQL/MariaDB installed.  
+Be sure to edit the passwords.rs file for each component to match the SQL 
+users and passwords created below.  Build with `cargo build --release`
 
 In order to configure MySQL to take the RBN data and alerts, it is necessary
 first to use mysqlrestore to restore db_schema.sql.  You will then need to
@@ -25,35 +24,44 @@ the various components.
 
 The first user is used for pulling spots and alerts from the RBN and from 
 SOTAWatch.  It has the following GRANTS in the database:
+
 ```
-GRANT USAGE ON *.* TO 'rbn_spot'@'localhost' IDENTIFIED BY PASSWORD 'XXXXXXX' |
+GRANT USAGE ON *.* TO 'rbn_spot'@'localhost' IDENTIFIED BY PASSWORD 'XXXXXXXX'
 GRANT INSERT ON `rbn_hole`.* TO 'rbn_spot'@'localhost'
 GRANT SELECT ON `rbn_hole`.`ExcludedActivators` TO 'rbn_spot'@'localhost'
 GRANT DROP ON `rbn_hole`.`alerts` TO 'rbn_spot'@'localhost'
 GRANT SELECT,UPDATE ON `rbn_hole`.`watchdog` TO 'rbn_spot'@'localhost'
 ```
+
 The second user is used for reading and posting spots to SOTAWatch.  This user
-is defined in db_2.inc and has the following GRANTS in the database:
+has the following GRANTS in the database:
 
 ```
-GRANT USAGE ON *.* TO 'spotter'@'localhost' IDENTIFIED BY PASSWORD 'XXXXXXX' 
+GRANT USAGE ON *.* TO 'spotter'@'localhost' IDENTIFIED BY PASSWORD 'XXXXXXXX'
 GRANT SELECT, INSERT, DELETE, EXECUTE ON `rbn_hole`.* TO 'spotter'@'localhost'
 GRANT UPDATE ON `rbn_hole`.`watchdog` TO 'spotter'@'localhost'
 ```
 
-Finally, you will need to configure cron to run the scripts at appropriate intervals.
+The third user is for the monitoring script.  This script can be used to 
+determine the connectivity of the RBN environment.
+
+```
+GRANT SELECT, INSERT ON rbn_hole.* TO 'monitoring'@'localhost' IDENTIFIED BY 'XXXXXXXX'
+```
+
+Finally, you will need to configure cron to run the scripts at appropriate 
+intervals.
 
 I have the following cron tasks set up:
 
 ```
-*/2 * * * * /path/to/rbnhole/rbn_hole.php >> /path/to/rbnhole/rbn.txt
-*/5 * * * * /path/to/rbnhole/fetch_alerts_db.php
-*/1 * * * * /path/to/rbnhole/monitor_spots.php
-*/1 * * * * /path/to/rbnhole/post_spots_db.php >> /path/to/rbnhole/spots.txt
-*/2 * * * * /usr/bin/php /path/to/rbnhole/psk_hole.php >> /path/to/rbnhole/psk.txt && /path/to/rbnhole/post_spots_db_psk.php >> /path/to/rbnhole/psk_spots.txt
+*/2 * * * * /path/to/rbnhole/rbn_hole >> /path/to/rbnhole/rbn.txt
+*/5 * * * * /path/to/rbnhole/fetch_alerts >> /path/to/rbnhole/alerts.txt
+*/1 * * * * /path/to/rbnhole/monitor_spots >> /path/to/rbnhole/monitor.txt
+*/1 * * * * /path/to/rbnhole/post_spots_db_api >> /path/to/rbnhole/spots.txt
 ```
 
-You will probably want to logrotate the output from rbn_hole.php at some point.
+You will probably want to logrotate the output from rbn_hole at some point.
 The output from rbn.txt and spots.txt can be used to determine why an activator
 wasn't spotted (usually callsign not spotted on RBN, callsign different to 
 alert or callsign spotted outside of the window.
