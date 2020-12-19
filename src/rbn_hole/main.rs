@@ -111,7 +111,7 @@ fn main() {
                         post_spot(&mut conn, l.to_string());
                     }
 
-                    working_buffer.push_str(last);
+                    working_buffer = last.to_string();
                 }
 
             },
