@@ -1,7 +1,9 @@
 [package]
 name = "rbnhole"
+description = "RBN aggregator and spotter to SOTAWatch3"
 version = "2.0.0"
 authors = ["Andrew Ryan <anryan@ieee.org>"]
+license = "GPLv3"
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -9,6 +11,10 @@ edition = "2018"
 [[bin]]
 name="rbn_hole"
 path="src/rbn_hole/main.rs"
+
+[[bin]]
+name="ft_hole"
+path="src/ft_hole/main.rs"
 
 [[bin]]
 name="fetch_alerts"

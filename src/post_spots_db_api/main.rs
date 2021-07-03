@@ -49,6 +49,7 @@ struct Spot {
 struct RBNSpot {
     op: String,
     dx: String,
+    mode: String,
     freq: f64,
     snr: i64,
     wpm: i64,
@@ -163,7 +164,6 @@ fn logout(jwt: &JWT) {
 }
 
 fn post_spot(dbh: &mut mysql::PooledConn, spot: &RBNSpot, access_token: &str) {
-    
     let summit_code: Vec<&str> = spot.summit.split('/').collect();
     let assoc: &str = summit_code[0];
     let sotaref: &str = summit_code[1];
@@ -174,13 +174,16 @@ fn post_spot(dbh: &mut mysql::PooledConn, spot: &RBNSpot, access_token: &str) {
     let band: i32 = freq.floor() as i32;
     let op = spot.op.clone();
     let dx : Vec<&str> = spot.dx.split('-').collect();
-    let comment = format!("[RBNHole] at {} {} WPM {} dB SNR", 
-                            dx[0], spot.wpm, spot.snr);
+    let comment = match spot.mode.as_str() {
+                    "CW" => format!("[RBNHole] at {} {} WPM {} dB SNR", 
+                                dx[0], spot.wpm, spot.snr),
+                    _ => format!("[RBNHole] at {} {} dB SNR", dx[0], spot.snr)
+    };
 
     let opcnt: i64 = dbh.exec_first("select count(op) from PostedSpots 
                                 where freq < :upper and freq > :lower 
                                 and op = :op 
-                                and time > SUBTIME(NOW(), SEC_TO_TIME(3600))",
+                                and time > SUBTIME(NOW(), SEC_TO_TIME(600))",
                                 params!{ "upper" => upper_freq, 
                                          "lower" => lower_freq, "op" => &op })
                 .expect("Failed to query db")
@@ -197,7 +200,7 @@ fn post_spot(dbh: &mut mysql::PooledConn, spot: &RBNSpot, access_token: &str) {
     data.insert("associationCode", assoc.to_string());
     data.insert("summitCode", sotaref.to_string());
     data.insert("callsign", "RBNHOLE".to_string());
-    data.insert("mode", "CW".to_string());
+    data.insert("mode", spot.mode.to_string());
     data.insert("comments", comment);
     data.insert("frequency", format!("{:.4}", freq)); 
 
@@ -251,11 +254,19 @@ fn main() {
     conn.query_drop("delete from rbn_spots where op not in 
                      (select b.op from alerts b)")
                    .expect("Unable to delete non-op rbn_spots");
+    
+    conn.query_drop("delete from rbn_ft_spots where op not in 
+                     (select b.op from alerts b)")
+                   .expect("Unable to delete non-op rbn_ft_spots");
 
     // delete any spots older than 10 minutes
     conn.query_drop("delete from rbn_spots where 
                       TIMESTAMPDIFF(MINUTE, time, NOW()) > 10")
                    .expect("Unable to delete old rbn_spots");
+    
+    conn.query_drop("delete from rbn_ft_spots where 
+                      TIMESTAMPDIFF(MINUTE, time, NOW()) > 10")
+                   .expect("Unable to delete old rbn_ft_spots");
 
     let res = conn.query_map::<_, _, _, Spot>(
                           "select op, freq from SeenActivators a
@@ -283,7 +294,8 @@ fn main() {
                      limit 1", params!{ "op" => row.op, "freq" => row.freq},
                      |(dx, op, freq, snr, wpm, time, summit)| {
                          RBNSpot { dx: from_value(dx), op: from_value(op), 
-                                   freq: from_value(freq), 
+                                   freq: from_value(freq),
+                                   mode: format!("CW"),
                                    snr: from_value(snr), wpm: from_value(wpm), 
                                    time: from_value::<NaiveDateTime>(time).timestamp(), 
                                    summit: from_value(summit) }
@@ -293,6 +305,48 @@ fn main() {
             let s = &spot[0];
             post_spot(&mut conn, &s, &jwt.access_token);
             conn.exec_drop("delete from rbn_spots where op = :op", 
+                           params!{ "op" => &s.op })
+                .expect("Failed to delete op spots");
+        }
+    }
+    
+    let res = conn.query_map::<_, _, _, Spot>(
+                          "select op, freq from SeenFTActivators a
+                          where cnt = (select max(cnt) from SeenFTActivators 
+                                       where op = a.op)", 
+                          |(op, freq)| { 
+                                Spot { op, freq } 
+                          })
+                  .unwrap();
+
+    for row in res {
+        if jwt.access_token == "" {
+            jwt = authenticate();
+        }
+
+        let spot = conn.exec_map::<_, &str,_,_, RBNSpot>(
+                    "select dx, a.op, freq, snr, mode, 
+                            a.time, summit 
+                     from rbn_ft_spots a, alerts b 
+                     where a.op = :op and a.freq=:freq 
+                            and a.op = b.op and startTime <= a.time 
+                            and a.time <= endTime 
+                     order by ABS(TIMESTAMPDIFF(MINUTE,b.time,a.time)) asc, 
+                            snr desc 
+                     limit 1", params!{ "op" => row.op, "freq" => row.freq},
+                     |(dx, op, freq, snr, mode, time, summit)| {
+                         RBNSpot { dx: from_value(dx), op: from_value(op), 
+                                   freq: from_value(freq),
+                                   mode: from_value(mode),
+                                   snr: from_value(snr), wpm: 0, 
+                                   time: from_value::<NaiveDateTime>(time).timestamp(), 
+                                   summit: from_value(summit) }
+                     }).unwrap();
+
+        if spot.len() == 1 {
+            let s = &spot[0];
+            post_spot(&mut conn, &s, &jwt.access_token);
+            conn.exec_drop("delete from rbn_ft_spots where op = :op", 
                            params!{ "op" => &s.op })
                 .expect("Failed to delete op spots");
         }
