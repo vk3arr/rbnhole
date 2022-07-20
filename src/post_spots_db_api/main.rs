@@ -5,6 +5,7 @@ use serde::*;
 use std::str::FromStr;
 use chrono::prelude::*;
 use regex::Regex;
+use time::PrimitiveDateTime;
 //use chrono::Duration;
 
 pub mod passwords;
@@ -241,7 +242,7 @@ fn main() {
     url.push_str(passwords::DB_HOST);
     url.push_str(":3306/");
     url.push_str(passwords::DB_NAME);
-    let pool = Pool::new(url).unwrap();
+    let pool = Pool::new(Opts::from_url(&url).unwrap()).unwrap();
     let mut conn = pool.get_conn().unwrap();
     let mut jwt = JWT {
                 access_token: String::from(""),
@@ -297,7 +298,7 @@ fn main() {
                                    freq: from_value(freq),
                                    mode: format!("CW"),
                                    snr: from_value(snr), wpm: from_value(wpm), 
-                                   time: from_value::<NaiveDateTime>(time).timestamp(), 
+                                   time: from_value::<PrimitiveDateTime>(time).assume_utc().unix_timestamp(),
                                    summit: from_value(summit) }
                      }).unwrap();
 
@@ -339,7 +340,7 @@ fn main() {
                                    freq: from_value(freq),
                                    mode: from_value(mode),
                                    snr: from_value(snr), wpm: 0, 
-                                   time: from_value::<NaiveDateTime>(time).timestamp(), 
+                                   time: from_value::<PrimitiveDateTime>(time).assume_utc().unix_timestamp(),
                                    summit: from_value(summit) }
                      }).unwrap();
 
