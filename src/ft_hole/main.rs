@@ -85,7 +85,7 @@ fn main() {
     loop {
         let line = socket.read_timeout(Duration::new(60, 0)).expect("Error reading line");
         match line {
-            telnet::TelnetEvent::Data(buffer) => {
+            telnet::Event::Data(buffer) => {
 
                 let mut buf = working_buffer.clone();
                 //println!("{:?}", buf);

@@ -5,6 +5,7 @@ use serde::*;
 use std::str::FromStr;
 use chrono::prelude::*;
 use regex::Regex;
+use time::PrimitiveDateTime;
 //use chrono::Duration;
 
 pub mod passwords;
@@ -297,7 +298,7 @@ fn main() {
                                    freq: from_value(freq),
                                    mode: format!("CW"),
                                    snr: from_value(snr), wpm: from_value(wpm), 
-                                   time: from_value::<NaiveDateTime>(time).timestamp(), 
+                                   time: from_value::<PrimitiveDateTime>(time).assume_utc().unix_timestamp(),
                                    summit: from_value(summit) }
                      }).unwrap();
 
@@ -339,7 +340,7 @@ fn main() {
                                    freq: from_value(freq),
                                    mode: from_value(mode),
                                    snr: from_value(snr), wpm: 0, 
-                                   time: from_value::<NaiveDateTime>(time).timestamp(), 
+                                   time: from_value::<PrimitiveDateTime>(time).assume_utc().unix_timestamp(),
                                    summit: from_value(summit) }
                      }).unwrap();
 

@@ -35,4 +35,5 @@ reqwest = { version = "*", features = ["blocking", "json"] }
 chrono = { version = "*", features = ["serde"] }
 serde = { version = "*", features = ["derive"] }
 serde_json = "*"
+time = {version = "0.3.11", features = ["serde", "parsing", "formatting"] }
 regex = "*"
