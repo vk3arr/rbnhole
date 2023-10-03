@@ -62,7 +62,7 @@ fn fetch_alerts(dbh: &mut mysql::PooledConn) -> Vec<Alert> {
         let exc : i64 =  
             dbh.exec_first(
                     "select count(op) from ExcludedActivators where op=:op", 
-                    (alert.poster_callsign,))
+                    (&alert.activating_callsign,))
                .expect("Failed to query db")
                .unwrap();
 
@@ -142,7 +142,7 @@ fn main() {
     url.push_str(passwords::DB_HOST);
     url.push_str(":3306/");
     url.push_str(passwords::DB_NAME);
-    let pool = Pool::new(url).unwrap();
+    let pool = Pool::new(Opts::from_url(&url).unwrap()).unwrap();
     let mut conn = pool.get_conn().unwrap();
 
 
