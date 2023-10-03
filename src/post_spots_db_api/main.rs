@@ -241,7 +241,7 @@ fn main() {
     url.push_str(passwords::DB_HOST);
     url.push_str(":3306/");
     url.push_str(passwords::DB_NAME);
-    let pool = Pool::new(url).unwrap();
+    let pool = Pool::new(Opts::from_url(&url).unwrap()).unwrap();
     let mut conn = pool.get_conn().unwrap();
     let mut jwt = JWT {
                 access_token: String::from(""),
