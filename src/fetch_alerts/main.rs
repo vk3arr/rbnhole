@@ -9,8 +9,9 @@ pub mod passwords;
 
 #[derive(Deserialize, Debug)]
 struct AlertModel {
+    epoch: String,
 
-#[serde(rename="dateActivated")]
+    #[serde(rename="dateActivated")]
     date_activated: String,
 
     #[serde(rename="activatingCallsign")]
@@ -26,7 +27,7 @@ struct AlertModel {
     summit_details: String,
 
     comments: Option<String>,
-    
+
     #[serde(rename="posterCallsign")]
     poster_callsign: String
 }
@@ -44,8 +45,21 @@ struct Alert {
 }
 
 fn fetch_alerts(dbh: &mut mysql::PooledConn) -> Vec<Alert> {
+    let epoch = reqwest::blocking::get(
+                    "https://api-db2.sota.org.uk/api/alerts/epoch")
+                    .expect("Could not reach server")
+                    .text()
+                    .expect("Failed to fetch epoch");
+
+    let old_epoch = std::fs::read_to_string("epoch.txt").unwrap_or(String::new());
+    if epoch.trim() == old_epoch.trim() {
+        // return an empty alert list
+        println!("Avoided new alert fetch");
+        return Vec::<Alert>::new();
+    }
+
     let json = reqwest::blocking::get(
-                    "https://api2.sota.org.uk/api/alerts/24/")
+                    "https://api-db2.sota.org.uk/api/alerts/24/all/all")
                     .expect("Could not reach server")
                     .text()
                     .expect("Failed to fetch JSON");
@@ -55,13 +69,17 @@ fn fetch_alerts(dbh: &mut mysql::PooledConn) -> Vec<Alert> {
 
     //println!("{:?}", alertsAPI);
     let mut alerts = Vec::<Alert>::new();
-
+    let mut saved_epoch = false;
     for alert in alerts_api {
-
+        if !saved_epoch {
+            //
+            std::fs::write("epoch.txt", alert.epoch).expect("Could not write file");
+            saved_epoch = true;
+        }
         // are we an excluded operator?
-        let exc : i64 =  
+        let exc : i64 =
             dbh.exec_first(
-                    "select count(op) from ExcludedActivators where op=:op", 
+                    "select count(op) from ExcludedActivators where op=:op",
                     (&alert.activating_callsign,))
                .expect("Failed to query db")
                .unwrap();
@@ -70,10 +88,9 @@ fn fetch_alerts(dbh: &mut mysql::PooledConn) -> Vec<Alert> {
             continue;
         }
 
-        let t = chrono::DateTime::<Utc>::from_utc(
-                NaiveDateTime::parse_from_str(&alert.date_activated, 
-                                              "%Y-%m-%dT%H:%M:%S").unwrap(), 
-                Utc);
+        let t = NaiveDateTime::parse_from_str(&alert.date_activated,
+                                              "%Y-%m-%dT%H:%M:%SZ")
+                            .unwrap().and_utc();
 
         let mut s_time = t.checked_sub_signed(Duration::hours(1)).unwrap();
         let mut e_time = t.checked_add_signed(Duration::hours(3)).unwrap();
@@ -87,34 +104,34 @@ fn fetch_alerts(dbh: &mut mysql::PooledConn) -> Vec<Alert> {
         };
 
         let re = Regex::new(r"S\+([0-9]+)").unwrap();
-        match re.captures(&comm) {
-            Some(c) => {
-                let shift = i64::from_str_radix(
-                        c.get(1).unwrap().as_str(), 10).unwrap();
-                e_time = t.checked_add_signed(Duration::hours(shift)).unwrap();
-            },
-            _ =>{}
+        if let Some(c) = re.captures(&comm) {
+            let shift = i64::from_str_radix(
+                    c.get(1).unwrap().as_str(), 10).unwrap();
+            e_time = t.checked_add_signed(Duration::hours(shift)).unwrap();
         }
-        
-        let re = Regex::new(r"S-([0-9]+)").unwrap();
-        match re.captures(&comm) {
-            Some(c) => {
-                let shift = i64::from_str_radix(
-                        c.get(1).unwrap().as_str(), 10).unwrap();
-                s_time = t.checked_sub_signed(Duration::hours(shift)).unwrap();
-            },
-            _ =>{}
+
+        let re = Regex::new(r" S-([0-9]+)").unwrap();
+        if let Some(c) = re.captures(&comm) {
+            let shift = i64::from_str_radix(
+                    c.get(1).unwrap().as_str(), 10).unwrap();
+            s_time = t.checked_sub_signed(Duration::hours(shift)).unwrap();
+        }
+
+        let re = Regex::new(r"^S-([0-9]+)").unwrap();
+        if let Some(c) = re.captures(&comm) {
+            let shift = i64::from_str_radix(
+                    c.get(1).unwrap().as_str(), 10).unwrap();
+            s_time = t.checked_sub_signed(Duration::hours(shift)).unwrap();
         }
 
         let exc = Regex::new("RBNN|NoRBNGate|NoRBNHole").unwrap();
-        assert_eq!(exc.is_match("Test RBNN comment"), true);   
-        assert_eq!(exc.is_match("TestNoRBNGate  comment"), true);   
-        assert_eq!(exc.is_match("TeNoRBNHole st comment"), true);   
-        
+        assert_eq!(exc.is_match("Test RBNN comment"), true);
+        assert_eq!(exc.is_match("TestNoRBNGate  comment"), true);
+        assert_eq!(exc.is_match("TeNoRBNHole st comment"), true);
+
         if exc.is_match(&comm) {
             continue;
         }
-        
 
         let a = Alert {
             op: alert.activating_callsign,
@@ -154,10 +171,10 @@ fn main() {
         // empty our alerts table
         t.query_drop("truncate table alerts").expect("Failed to truncate");
 
-        let stmt = t.exec_batch("insert into alerts(startTime, endTime, op, 
+        let stmt = t.exec_batch("insert into alerts(startTime, endTime, op,
                                 summit, comment, time) values(
-                                FROM_UNIXTIME(:start), FROM_UNIXTIME(:end), 
-                                :op, :summit, :comment, 
+                                FROM_UNIXTIME(:start), FROM_UNIXTIME(:end),
+                                :op, :summit, :comment,
                                 FROM_UNIXTIME(:time))",
                                 alerts.iter().map(|a| params!{
                                     "start" => a.start_time,
