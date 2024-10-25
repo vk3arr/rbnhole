@@ -1,7 +1,7 @@
 [package]
 name = "rbnhole"
 description = "RBN aggregator and spotter to SOTAWatch3"
-version = "2.0.0"
+version = "2.1.0"
 authors = ["Andrew Ryan <anryan@ieee.org>"]
 license = "GPLv3"
 edition = "2018"
@@ -35,5 +35,5 @@ reqwest = { version = "*", features = ["blocking", "json"] }
 chrono = { version = "*", features = ["serde"] }
 serde = { version = "*", features = ["derive"] }
 serde_json = "*"
-time = {version = "0.3.11", features = ["serde", "parsing", "formatting"] }
+time = {version = "*", features = ["serde", "parsing", "formatting"] }
 regex = "*"
