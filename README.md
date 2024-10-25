@@ -26,20 +26,20 @@ The first user is used for pulling spots and alerts from the RBN and from
 SOTAWatch.  It has the following GRANTS in the database:
 
 ```
-GRANT USAGE ON *.* TO 'rbn_spot'@'localhost' IDENTIFIED BY PASSWORD 'XXXXXXXX'
-GRANT INSERT ON `rbn_hole`.* TO 'rbn_spot'@'localhost'
-GRANT SELECT ON `rbn_hole`.`ExcludedActivators` TO 'rbn_spot'@'localhost'
-GRANT DROP ON `rbn_hole`.`alerts` TO 'rbn_spot'@'localhost'
-GRANT SELECT,UPDATE ON `rbn_hole`.`watchdog` TO 'rbn_spot'@'localhost'
+GRANT USAGE ON *.* TO 'rbn_spot'@'localhost' IDENTIFIED BY 'XXXXXXXX';
+GRANT INSERT ON `rbn_hole`.* TO 'rbn_spot'@'localhost';
+GRANT SELECT ON `rbn_hole`.`ExcludedActivators` TO 'rbn_spot'@'localhost';
+GRANT DROP ON `rbn_hole`.`alerts` TO 'rbn_spot'@'localhost';
+GRANT SELECT,UPDATE ON `rbn_hole`.`watchdog` TO 'rbn_spot'@'localhost';
 ```
 
 The second user is used for reading and posting spots to SOTAWatch.  This user
 has the following GRANTS in the database:
 
 ```
-GRANT USAGE ON *.* TO 'spotter'@'localhost' IDENTIFIED BY PASSWORD 'XXXXXXXX'
-GRANT SELECT, INSERT, DELETE, EXECUTE ON `rbn_hole`.* TO 'spotter'@'localhost'
-GRANT UPDATE ON `rbn_hole`.`watchdog` TO 'spotter'@'localhost'
+GRANT USAGE ON *.* TO 'spotter'@'localhost' IDENTIFIED BY 'XXXXXXXX';
+GRANT SELECT, INSERT, DELETE, EXECUTE ON `rbn_hole`.* TO 'spotter'@'localhost';
+GRANT UPDATE ON `rbn_hole`.`watchdog` TO 'spotter'@'localhost';
 ```
 
 The third user is for the monitoring script.  This script can be used to 
@@ -50,16 +50,25 @@ GRANT SELECT, INSERT ON rbn_hole.* TO 'monitoring'@'localhost' IDENTIFIED BY 'XX
 ```
 
 Finally, you will need to configure cron to run the scripts at appropriate 
-intervals.
+intervals, and add the systemd service file (other init systems are available).
 
 I have the following cron tasks set up:
 
 ```
-*/2 * * * * /path/to/rbnhole/rbn_hole >> /path/to/rbnhole/rbn.txt
 */5 * * * * /path/to/rbnhole/fetch_alerts >> /path/to/rbnhole/alerts.txt
 */1 * * * * /path/to/rbnhole/monitor_spots >> /path/to/rbnhole/monitor.txt
 */1 * * * * /path/to/rbnhole/post_spots_db_api >> /path/to/rbnhole/spots.txt
 ```
+
+Configure systemd service with the following, after updating the path in the systemd service file:
+
+```
+root@localhost-# cp rbnhole.service /etc/systemd/system/rbnhole.service
+root@localhost-# systemctl daemon-reload
+root@localhost-# systemctl enable rbnhole
+root@localhost-# systemctl start rbnhole
+```
+
 
 You will probably want to logrotate the output from rbn_hole at some point.
 The output from rbn.txt and spots.txt can be used to determine why an activator
