@@ -77,7 +77,7 @@ fn fetch_sw_spots(dbh: &mut mysql::PooledConn) {
 
     //println!("{:?}", spots_api);
     for spot in spots_api {
-        if spot.mode.to_ascii_uppercase() == "CW" {
+        if spot.mode.eq_ignore_ascii_case("CW") {
             // check if spot ID has already been seen
             let scnt : i64 = dbh.exec_first(
                     "select count(*) from sw_spots where id=:id",
@@ -207,7 +207,7 @@ fn post_spot(dbh: &mut mysql::PooledConn, spot: &RBNSpot, access_token: &str) {
     let mut url = "https://api-db2.sota.org.uk/api/spots/dontchecksummit";
     //let mut url = "http://localhost:63004/api/spots/dontchecksummit?client=sotawatch&user=rbnhole";
 
-    if Regex::new(r"^[A-Z]{2}-[0-9]{3}").unwrap().is_match(&sotaref) {
+    if Regex::new(r"^[A-Z]{2}-[0-9]{3}").unwrap().is_match(sotaref) {
         url = "https://api-db2.sota.org.uk/api/spots";
         //url = "http://localhost:63004/api/spots?client=sotawatch&user=rbnhole";
     }
@@ -234,9 +234,9 @@ fn main() {
     // Connect to database
     let mut url = String::from("mysql://");
     url.push_str(passwords::DB_USER);
-    url.push_str(":");
+    url.push(':');
     url.push_str(passwords::DB_PASS);
-    url.push_str("@");
+    url.push('@');
     url.push_str(passwords::DB_HOST);
     url.push_str(":3306/");
     url.push_str(passwords::DB_NAME);
@@ -277,7 +277,7 @@ fn main() {
                   .unwrap();
 
     for row in res {
-        if jwt.access_token == "" {
+        if jwt.access_token.is_empty() {
             jwt = authenticate();
         }
 
@@ -294,7 +294,7 @@ fn main() {
                      |(dx, op, freq, snr, wpm, time, summit)| {
                          RBNSpot { dx: from_value(dx), op: from_value(op),
                                    freq: from_value(freq),
-                                   mode: format!("CW"),
+                                   mode: "CW".to_string(),
                                    snr: from_value(snr), wpm: from_value(wpm),
                                    time: from_value::<PrimitiveDateTime>(time).assume_utc().unix_timestamp(),
                                    summit: from_value(summit) }
@@ -302,7 +302,7 @@ fn main() {
 
         if spot.len() == 1 {
             let s = &spot[0];
-            post_spot(&mut conn, &s, &jwt.access_token);
+            post_spot(&mut conn, s, &jwt.access_token);
             conn.exec_drop("delete from rbn_spots where op = :op",
                            params!{ "op" => &s.op })
                 .expect("Failed to delete op spots");
@@ -319,7 +319,7 @@ fn main() {
                   .unwrap();
 
     for row in res {
-        if jwt.access_token == "" {
+        if jwt.access_token.is_empty() {
             jwt = authenticate();
         }
 
@@ -344,14 +344,14 @@ fn main() {
 
         if spot.len() == 1 {
             let s = &spot[0];
-            post_spot(&mut conn, &s, &jwt.access_token);
+            post_spot(&mut conn, s, &jwt.access_token);
             conn.exec_drop("delete from rbn_ft_spots where op = :op",
                            params!{ "op" => &s.op })
                 .expect("Failed to delete op spots");
         }
     }
 
-    if jwt.access_token != "" {
+    if !jwt.access_token.is_empty() {
         logout(&jwt);
     }
 }
