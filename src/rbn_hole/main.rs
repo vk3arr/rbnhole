@@ -9,7 +9,7 @@ pub mod passwords;
 fn post_spot(dbh: &mut mysql::PooledConn, line: String) {
     let fields = line.split_whitespace().collect::<Vec<&str>>();
     //println!("{:?}", fields);
-    
+
     if fields.len() < 9 {
         return;
     }
@@ -22,7 +22,7 @@ fn post_spot(dbh: &mut mysql::PooledConn, line: String) {
         let wpm = fields[8];
 
         dbh.exec_drop("insert into rbn_spots(dx, op, freq, snr, wpm) values(
-                        :dx, :op, :freq, :snr, :wpm)", 
+                        :dx, :op, :freq, :snr, :wpm)",
                         (dx, op, freq, snr, wpm))
            .expect("Failed to insert spot");
     }
@@ -48,7 +48,7 @@ fn main() {
         .unwrap();
 
     match result {
-        Some(cnt) => { 
+        Some(cnt) => {
             if cnt <= 2 {
                 println!("Already running - quitting now");
                 return;
@@ -60,12 +60,12 @@ fn main() {
         "select pid from watchdog")
         .unwrap()
         .unwrap();
-    
+
     // update the pid in the database
     conn.exec_drop("update watchdog set pid = :pid", (process::id(),)).expect("Error updating watchdog");
 
-    // update the spot count 
-    conn.exec_drop("update watchdog set no_spot_cnt = :pid", (0,)).expect("Error updating watchdog cnt"); 
+    // update the spot count
+    conn.exec_drop("update watchdog set no_spot_cnt = :pid", (0,)).expect("Error updating watchdog cnt");
 
     // connect
     let mut socket = Telnet::connect(("telnet.reversebeacon.net", 7000), 80)
@@ -75,7 +75,7 @@ fn main() {
     let _header = socket.read().expect("Error reading header!");
 
     //println!("{:?}", header);
-    
+
     // login
     socket.write(&String::from("VK3ARR\r\n").into_bytes())
             .expect("Could not send login");
@@ -87,19 +87,19 @@ fn main() {
             telnet::Event::Data(buffer) => {
                 let mut buf = working_buffer.clone();
                 buf.push_str(&String::from_utf8(buffer.to_vec()).unwrap());
-                
+
                 // if we have a full line at the end of the buffer
                 // don't process the last line differently.
                 if buf.ends_with('\n') {
                     let lines = buf.lines();
-                    
+
                     for l in lines {
                         println!("{:?}", l);
                         post_spot(&mut conn, l.to_string());
                     }
 
                     working_buffer.clear();
-                } 
+                }
                 else {
                     //
                     let mut lines = buf.lines().collect::<Vec<&str>>();
@@ -116,6 +116,6 @@ fn main() {
 
             },
             _ => {}
-        } 
+        }
     }
 }
