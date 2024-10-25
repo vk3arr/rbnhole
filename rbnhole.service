@@ -1,0 +1,15 @@
+[Unit]
+Description=RBNHole Service
+
+[Service]
+Type=simple
+ExecStart=/path/to/rbn_hole
+KillSignal=SIGINT
+RestartSec=60
+Restart=always
+StandardOutput=append:/var/log/rbn_hole.log
+StandardError=append:/var/log/rbn_hole.log
+
+[Install]
+WantedBy=multi-user.target
+
