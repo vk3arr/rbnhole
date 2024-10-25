@@ -7,9 +7,9 @@ fn main() {
     // Connect to database
     let mut url = String::from("mysql://");
     url.push_str(passwords::DB_USER);
-    url.push_str(":");
+    url.push(':');
     url.push_str(passwords::DB_PASS);
-    url.push_str("@");
+    url.push('@');
     url.push_str(passwords::DB_HOST);
     url.push_str(":3306/");
     url.push_str(passwords::DB_NAME);
