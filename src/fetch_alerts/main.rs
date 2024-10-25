@@ -51,7 +51,7 @@ fn fetch_alerts(dbh: &mut mysql::PooledConn) -> Vec<Alert> {
                     .text()
                     .expect("Failed to fetch epoch");
 
-    let old_epoch = std::fs::read_to_string("epoch.txt").unwrap_or(String::new());
+    let old_epoch = std::fs::read_to_string("epoch.txt").unwrap_or_default();
     if epoch.trim() == old_epoch.trim() {
         // return an empty alert list
         println!("Avoided new alert fetch");
@@ -70,6 +70,11 @@ fn fetch_alerts(dbh: &mut mysql::PooledConn) -> Vec<Alert> {
     //println!("{:?}", alertsAPI);
     let mut alerts = Vec::<Alert>::new();
     let mut saved_epoch = false;
+    let re = Regex::new(r"S\+([0-9]+)").unwrap();
+    let re2 = Regex::new(r"^S-([0-9]+)").unwrap();
+    let re3 = Regex::new(r" S-([0-9]+)").unwrap();
+    let excre = Regex::new("RBNN|NoRBNGate|NoRBNHole").unwrap();
+
     for alert in alerts_api {
         if !saved_epoch {
             //
@@ -103,33 +108,26 @@ fn fetch_alerts(dbh: &mut mysql::PooledConn) -> Vec<Alert> {
             }
         };
 
-        let re = Regex::new(r"S\+([0-9]+)").unwrap();
         if let Some(c) = re.captures(&comm) {
-            let shift = i64::from_str_radix(
-                    c.get(1).unwrap().as_str(), 10).unwrap();
+            let shift = c.get(1).unwrap().as_str().parse::<i64>().unwrap();
             e_time = t.checked_add_signed(Duration::hours(shift)).unwrap();
         }
 
-        let re = Regex::new(r" S-([0-9]+)").unwrap();
-        if let Some(c) = re.captures(&comm) {
-            let shift = i64::from_str_radix(
-                    c.get(1).unwrap().as_str(), 10).unwrap();
+        if let Some(c) = re3.captures(&comm) {
+            let shift = c.get(1).unwrap().as_str().parse::<i64>().unwrap();
             s_time = t.checked_sub_signed(Duration::hours(shift)).unwrap();
         }
 
-        let re = Regex::new(r"^S-([0-9]+)").unwrap();
-        if let Some(c) = re.captures(&comm) {
-            let shift = i64::from_str_radix(
-                    c.get(1).unwrap().as_str(), 10).unwrap();
+        if let Some(c) = re2.captures(&comm) {
+            let shift = c.get(1).unwrap().as_str().parse::<i64>().unwrap();
             s_time = t.checked_sub_signed(Duration::hours(shift)).unwrap();
         }
 
-        let exc = Regex::new("RBNN|NoRBNGate|NoRBNHole").unwrap();
-        assert_eq!(exc.is_match("Test RBNN comment"), true);
-        assert_eq!(exc.is_match("TestNoRBNGate  comment"), true);
-        assert_eq!(exc.is_match("TeNoRBNHole st comment"), true);
+        assert!(excre.is_match("Test RBNN comment"));
+        assert!(excre.is_match("TestNoRBNGate  comment"));
+        assert!(excre.is_match("TeNoRBNHole st comment"));
 
-        if exc.is_match(&comm) {
+        if excre.is_match(&comm) {
             continue;
         }
 
@@ -146,16 +144,16 @@ fn fetch_alerts(dbh: &mut mysql::PooledConn) -> Vec<Alert> {
     }
 
     //println!("{:?}", alerts);
-    return alerts;
+    alerts
 }
 
 fn main() {
     // Connect to database
     let mut url = String::from("mysql://");
     url.push_str(passwords::DB_USER);
-    url.push_str(":");
+    url.push(':');
     url.push_str(passwords::DB_PASS);
-    url.push_str("@");
+    url.push('@');
     url.push_str(passwords::DB_HOST);
     url.push_str(":3306/");
     url.push_str(passwords::DB_NAME);
@@ -164,7 +162,7 @@ fn main() {
 
 
     let alerts = fetch_alerts(&mut conn);
-    if alerts.len() != 0 {
+    if !alerts.is_empty() {
         let mut t = conn.start_transaction(TxOpts::default())
                         .expect("Could not create transaction");
 
