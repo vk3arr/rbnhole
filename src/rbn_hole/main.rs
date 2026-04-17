@@ -7,8 +7,8 @@ use mysql::prelude::*;
 pub mod passwords;
 
 fn post_spot(dbh: &mut mysql::PooledConn, line: String) {
-    let fields = line.split_whitespace().collect::<Vec<&str>>();
-    //println!("{:?}", fields);
+    let t = line.replace(":", ": ");
+    let fields = t.split_whitespace().collect::<Vec<&str>>();
 
     if fields.len() < 9 {
         return;
@@ -23,7 +23,7 @@ fn post_spot(dbh: &mut mysql::PooledConn, line: String) {
 
         dbh.exec_drop("insert into rbn_spots(dx, op, freq, snr, wpm) values(
                         :dx, :op, :freq, :snr, :wpm)",
-                        (dx, op, freq, snr, wpm))
+                        params! { dx, op, freq, snr, wpm })
            .expect("Failed to insert spot");
     }
 }
@@ -31,15 +31,13 @@ fn post_spot(dbh: &mut mysql::PooledConn, line: String) {
 
 fn main() {
     // Connect to database
-    let mut url = String::from("mysql://");
-    url.push_str(passwords::DB_USER);
-    url.push_str(":");
-    url.push_str(passwords::DB_PASS);
-    url.push_str("@");
-    url.push_str(passwords::DB_HOST);
-    url.push_str(":3306/");
-    url.push_str(passwords::DB_NAME);
-    let pool = Pool::new(Opts::from_url(&url).unwrap()).unwrap();
+    let url = OptsBuilder::new()
+                    .user(Some(passwords::DB_USER))
+                    .pass(Some(passwords::DB_PASS))
+                    .tcp_port(3306)
+                    .db_name(Some(passwords::DB_NAME))
+                    .ip_or_hostname(Some(passwords::DB_HOST));
+    let pool = Pool::new(url).unwrap();
     let mut conn = pool.get_conn().unwrap();
 
     // check we're already running
@@ -62,10 +60,10 @@ fn main() {
         .unwrap();
 
     // update the pid in the database
-    conn.exec_drop("update watchdog set pid = :pid", (process::id(),)).expect("Error updating watchdog");
+    conn.exec_drop("update watchdog set pid = :pid", params! { "pid" => process::id() }).expect("Error updating watchdog");
 
     // update the spot count
-    conn.exec_drop("update watchdog set no_spot_cnt = :pid", (0,)).expect("Error updating watchdog cnt");
+    conn.exec_drop("update watchdog set no_spot_cnt = :pid", params! { "pid" => 0 }).expect("Error updating watchdog cnt");
 
     // connect
     let mut socket = Telnet::connect(("telnet.reversebeacon.net", 7000), 80)
